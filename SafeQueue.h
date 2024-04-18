@@ -3,8 +3,7 @@
 #include <queue>
 #include <mutex>
 #include <condition_variable>
-
-#include "Functions.h"
+#include <functional>
 
 template <typename T>
 class SafeQueue {
@@ -20,20 +19,21 @@ public:
 		cond_var.notify_one();
 	};
 
-	bool pop(T& function) {
-		std::lock_guard<std::mutex> lock(mutex);
-		if (queue.empty()) return false;
-		function = std::move(queue.front());
+	T pop() {
+		std::unique_lock<std::mutex> lock(mutex);
+		cond_var.wait(lock, [this]() { return !queue.empty(); });
+		T function = std::move(queue.front());
 		queue.pop();
-		return true;
+		return function;
 	};
 
-	bool empty() const {
+	size_t size() {
 		std::lock_guard<std::mutex> lock(mutex);
-		return queue.empty();
-	};
-
-	int getTasks() {
 		return queue.size();
 	};
+
+	bool empty() {
+		std::lock_guard<std::mutex> lock(mutex);
+		return queue.empty();
+	}
 };

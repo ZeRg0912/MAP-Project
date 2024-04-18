@@ -5,18 +5,17 @@
 #include <mutex>
 #include "SafeQueue.h"
 
-template<typename T>
 class ThreadPool {
 private:
 	std::vector<std::thread> threads;
-	SafeQueue<T> safe_queue;
-	std::atomic_bool done;
+	SafeQueue<std::function<void()>> safe_queue;
+	bool done;
 
 public:
 	ThreadPool() : done(false) {
 		size_t const cores = std::thread::hardware_concurrency();
-		for (size_t i = 1; i <= cores; i++) {
-			threads.push_back(std::thread(&ThreadPool::work, std::move(this)));
+		for (size_t i = 0; i < cores; i++) {
+			threads.emplace_back(&ThreadPool::work, this);
 		}
 	};
 
@@ -28,17 +27,23 @@ public:
 	};
 
 	void work() {
-		while (!done) {
-			T task;
-			safe_queue.pop(task);
+		while (true) {
+			std::cout << "Start task!\n";
+			std::function<void()> task = safe_queue.pop();
+			if (done && safe_queue.size() == 0) break;
+			task();
 		}
 	};
 
-	void submit(T task) {
-		safe_queue.push(std::move(task));
+	void submit(std::function<void()> function) {
+		safe_queue.push(std::move(function));
 	};
 
-	void getTasks() {
-		std::cout << "Tasks in queue: " << safe_queue.getTasks() << std::endl;
+	size_t getSize() {
+		return safe_queue.size();
 	};
+
+	bool isEmpty() {
+		return safe_queue.empty();
+	}
 };
