@@ -1,35 +1,46 @@
 #include <iostream>
+#include <random>
 
 #include "ThreadPool.h"
+
+template<typename T>
+T Random(T min, T max) {
+	std::random_device rd;
+	std::mt19937 gen(rd());
+	std::uniform_int_distribution<> dis(min, max);
+	return dis(gen);
+}
 
 using namespace std::chrono_literals;
 
 int sum(int a, int b) {
 	std::this_thread::sleep_for(1s);
+	//std::cout << "a = " << a << ", b = " << b << " | a + b = " << a + b;
 	return a + b;
 }
 
 int sub(int a, int b) {
 	std::this_thread::sleep_for(2s);
+	//std::cout << "a = " << a << ", b = " << b << " | a - b = " << a - b;
 	return a - b;
 }
 
 int main() {
 	bool complete = false;
-	int a = 10, b = 5;
-	std::cout << "first num = " << a << std::endl;
-	std::cout << "second num = " << b << std::endl;
+	int min = 0, max = 10;
 
-	ThreadPool tp(1);
-
-	for (size_t i = 0; i < 5; i++) {
-		tp.submit([&a, &b] {
-			sum(a, b);
+	ThreadPool tp(4);
+	std::cout << "Safe queue thread pool:\n";
+	for (size_t i = 0; i < 20; i++) {
+		tp.submit([&min, &max] {
+			sum(Random(min, max), Random(min, max));
 		});
-		tp.submit([&a, &b] {
-			sub(a, b);
+		tp.submit([&min, &max] {
+			sub(Random(min, max), Random(min, max));
 		});
 		std::this_thread::sleep_for(1s);
 	}
+
+
 	return 0;
 }

@@ -23,9 +23,6 @@
     <ClInclude Include="ThreadPool.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
-    <ClInclude Include="Function.h">
-      <Filter>Файлы заголовков</Filter>
-    </ClInclude>
     <ClInclude Include="SafeQueue.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>

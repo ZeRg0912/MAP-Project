@@ -4,7 +4,8 @@
 #include <thread>
 #include <mutex>
 #include <Windows.h>
-#include <string>
+#include <iomanip>
+#include <sstream>
 
 #include "SafeQueue.h"
 
@@ -20,15 +21,16 @@ static void SetPosition(int x, int y)
 
 class ThreadPool {
 private:
-	std::vector<std::thread> threads;
 	SafeQueue<std::function<void()>> safe_queue;
-	bool done;
+	std::vector<std::thread> threads;
 	std::chrono::steady_clock::time_point start_time = std::chrono::steady_clock::now();
-	int cores;
+	//size_t const cores = std::thread::hardware_concurrency();
+	size_t const cores;
+	std::mutex console_mutex;
+	bool done;
 
 public:
-	ThreadPool(int _cores) : done(false), cores(_cores) {
-		//size_t const cores = std::thread::hardware_concurrency();
+	ThreadPool(size_t _cores) : done(false), cores(_cores) {
 		for (size_t i = 0; i < cores; i++) {
 			threads.emplace_back(&ThreadPool::work, this);
 		}
@@ -42,10 +44,15 @@ public:
 	};
 
 	void work() {
-		while (true) {
-			std::function<void()> task = safe_queue.pop();
-			if (done && safe_queue.size() == 0) break;
-			task();
+		while (!done || !safe_queue.empty()) {
+			std::function<void()> task;
+			if (!safe_queue.empty()) {
+				task = safe_queue.pop();
+				task();
+			}
+			else {
+				std::this_thread::yield();
+			}
 		}
 	};
 
@@ -53,27 +60,41 @@ public:
 		static int task_counter = 0;
 		int task_id = ++task_counter;
 		safe_queue.push([function, task_id, this]() {
-			SetPosition(0, task_id + 1);
+			//std::unique_lock<std::mutex> lock(console_mutex);
 			std::string info;
+			std::ostringstream oss;
+
 			auto real_start = std::chrono::steady_clock::now();
 			std::chrono::duration<double> real_function_duration = real_start - start_time;
-			info += 
-				"Task " 
-				+ std::to_string(task_id) 
-				+ " started: "
-				+ std::to_string(real_function_duration.count());
-			function();
-			auto end_time = std::chrono::steady_clock::now();
-			std::chrono::duration<double> duration = end_time - start_time;
-			info +=
-				" Task "
+
+			oss << std::fixed << std::setprecision(3) << real_function_duration.count();
+			info =
+				"Task "
 				+ std::to_string(task_id)
-				+ " completed. Excecution time : "
-				+ std::to_string(duration.count())
+				+ " started: "
+				+ oss.str()
+				+ "    ";
+			//int lenght = 55;
+			//SetPosition(0, task_id);
+			//std::cout << info;
+
+			function();
+
+			auto end_time = std::chrono::steady_clock::now();
+			std::chrono::duration<double> duration = end_time - start_time; 
+
+			oss.str("");
+			oss << std::fixed << std::setprecision(3) << duration.count();
+			info +=
+				"    Task "
+				+ std::to_string(task_id)
+				+ " completed. Duration: "
+				+ oss.str()
 				+ "s"
 				+ " Count of tasks: "
 				+ std::to_string(getSize())
 				+ "\n";
+			//SetPosition(lenght, task_id);
 			std::cout << info;
 			});
 	};
