@@ -9,7 +9,7 @@ template <typename T>
 class SafeQueue {
 private:
 	std::queue<T> queue;
-	std::mutex mutex;
+	mutable std::mutex mutex;
 	std::condition_variable cond_var;
 
 public:
@@ -27,12 +27,12 @@ public:
 		return function;
 	};
 
-	size_t size() {
+	size_t size() const {
 		std::lock_guard<std::mutex> lock(mutex);
 		return queue.size();
 	};
 
-	bool empty() {
+	bool empty() const {
 		std::lock_guard<std::mutex> lock(mutex);
 		return queue.empty();
 	}

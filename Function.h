@@ -30,4 +30,8 @@ public:
 		std::this_thread::sleep_for(500ms);
 		return pow(num, exp); 
 	};
+
+	std::function<void()> function(int function) {
+		return [&T, &T]() { function(T, T); };
+	}
 };

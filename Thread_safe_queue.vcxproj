@@ -130,7 +130,7 @@
     <ClCompile Include="ThreadSafeQueue.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Functions.h" />
+    <ClInclude Include="Function.h" />
     <ClInclude Include="SafeQueue.h" />
     <ClInclude Include="ThreadPool.h" />
   </ItemGroup>
