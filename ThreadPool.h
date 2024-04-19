@@ -56,11 +56,10 @@ public:
 		}
 	};
 
-	void submit(std::function<void()> function) {
+	void submit(int (*function)(int a, int b)) {
 		static int task_counter = 0;
 		int task_id = ++task_counter;
 		safe_queue.push([function, task_id, this]() {
-			//std::unique_lock<std::mutex> lock(console_mutex);
 			std::string info;
 			std::ostringstream oss;
 
@@ -73,12 +72,10 @@ public:
 				+ std::to_string(task_id)
 				+ " started: "
 				+ oss.str()
+				+ "s"
 				+ "    ";
-			//int lenght = 55;
-			//SetPosition(0, task_id);
-			//std::cout << info;
 
-			function();
+			int result = function(a, b);
 
 			auto end_time = std::chrono::steady_clock::now();
 			std::chrono::duration<double> duration = end_time - start_time; 
@@ -91,10 +88,9 @@ public:
 				+ " completed. Duration: "
 				+ oss.str()
 				+ "s"
-				+ " Count of tasks: "
+				+ ". Count of tasks: "
 				+ std::to_string(getSize())
 				+ "\n";
-			//SetPosition(lenght, task_id);
 			std::cout << info;
 			});
 	};

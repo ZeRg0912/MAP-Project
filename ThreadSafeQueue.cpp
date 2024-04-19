@@ -29,15 +29,14 @@ int main() {
 	bool complete = false;
 	int min = 0, max = 10;
 
+	int (*pt2Func)(int a, int b) = NULL;
+	pt2Func = &sum;
+
 	ThreadPool tp(4);
 	std::cout << "Safe queue thread pool:\n";
 	for (size_t i = 0; i < 20; i++) {
-		tp.submit([&min, &max] {
-			sum(Random(min, max), Random(min, max));
-		});
-		tp.submit([&min, &max] {
-			sub(Random(min, max), Random(min, max));
-		});
+		tp.submit(pt2Func, Random(min, max), Random(min, max));
+		tp.submit(pt2Func, Random(min, max), Random(min, max));
 		std::this_thread::sleep_for(1s);
 	}
 
