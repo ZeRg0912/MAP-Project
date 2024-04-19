@@ -28,9 +28,10 @@ private:
 	size_t const cores;
 	std::mutex console_mutex;
 	bool done;
+	int task_counter;
 
 public:
-	ThreadPool(size_t _cores) : done(false), cores(_cores) {
+	ThreadPool(size_t _cores) : done(false), cores(_cores), task_counter(0){
 		for (size_t i = 0; i < cores; i++) {
 			threads.emplace_back(&ThreadPool::work, this);
 		}
@@ -41,6 +42,7 @@ public:
 		for (auto& thread : threads) {
 			thread.join();
 		}
+		SetPosition(0, task_counter + 1);
 	};
 
 	void work() {
@@ -56,10 +58,9 @@ public:
 		}
 	};
 
-	void submit(int (*function)(int a, int b)) {
-		static int task_counter = 0;
-		int task_id = ++task_counter;
-		safe_queue.push([function, task_id, this]() {
+	void submit(int (*function)(int a, int b), int a, int b) {
+		safe_queue.push([function, a, b, this]() {
+			int task_id = ++task_counter;
 			std::string info;
 			std::ostringstream oss;
 
@@ -73,24 +74,34 @@ public:
 				+ " started: "
 				+ oss.str()
 				+ "s"
-				+ "    ";
+				+ "\t";
+			SetPosition(0, task_id);
+			std::cout << info;
+			int length = info.size();
 
-			int result = function(a, b);
+			int result = (*function)(a, b);
+
+			oss.str("");
+			oss << " a = " << a << ", b = " << b << " Result = " << result << '\t';
+			info = oss.str();
+			SetPosition(length, task_id);
+			std::cout << info;
+			length += info.size();
 
 			auto end_time = std::chrono::steady_clock::now();
 			std::chrono::duration<double> duration = end_time - start_time; 
 
 			oss.str("");
 			oss << std::fixed << std::setprecision(3) << duration.count();
-			info +=
-				"    Task "
+			info =
+				"Task "
 				+ std::to_string(task_id)
 				+ " completed. Duration: "
 				+ oss.str()
 				+ "s"
 				+ ". Count of tasks: "
-				+ std::to_string(getSize())
-				+ "\n";
+				+ std::to_string(getSize());
+			SetPosition(length, task_id);
 			std::cout << info;
 			});
 	};

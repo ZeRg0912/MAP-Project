@@ -14,14 +14,12 @@ T Random(T min, T max) {
 using namespace std::chrono_literals;
 
 int sum(int a, int b) {
-	std::this_thread::sleep_for(1s);
-	//std::cout << "a = " << a << ", b = " << b << " | a + b = " << a + b;
+	std::this_thread::sleep_for(2s);
 	return a + b;
 }
 
 int sub(int a, int b) {
-	std::this_thread::sleep_for(2s);
-	//std::cout << "a = " << a << ", b = " << b << " | a - b = " << a - b;
+	std::this_thread::sleep_for(1s);
 	return a - b;
 }
 
@@ -29,14 +27,14 @@ int main() {
 	bool complete = false;
 	int min = 0, max = 10;
 
-	int (*pt2Func)(int a, int b) = NULL;
-	pt2Func = &sum;
+	int (*sumFunc)(int a, int b) = &sum;
+	int (*subFunc)(int a, int b) = &sub;
 
-	ThreadPool tp(4);
+	ThreadPool tp(2);
 	std::cout << "Safe queue thread pool:\n";
-	for (size_t i = 0; i < 20; i++) {
-		tp.submit(pt2Func, Random(min, max), Random(min, max));
-		tp.submit(pt2Func, Random(min, max), Random(min, max));
+	for (size_t i = 0; i < 5; i++) {
+		tp.submit(sumFunc, Random(min, max), Random(min, max));
+		tp.submit(subFunc, Random(min, max), Random(min, max));
 		std::this_thread::sleep_for(1s);
 	}
 
