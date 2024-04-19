@@ -127,6 +127,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="ThreadPool.cpp" />
     <ClCompile Include="ThreadSafeQueue.cpp" />
   </ItemGroup>
   <ItemGroup>

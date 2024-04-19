@@ -6,10 +6,12 @@
 #include <Windows.h>
 #include <iomanip>
 #include <sstream>
+#include <memory>
 
 #include "SafeQueue.h"
 
 static HANDLE hStdOut = GetStdHandle(STD_OUTPUT_HANDLE);
+using namespace std::chrono_literals;
 
 static void SetPosition(int x, int y)
 {
@@ -24,45 +26,31 @@ private:
 	SafeQueue<std::function<void()>> safe_queue;
 	std::vector<std::thread> threads;
 	std::chrono::steady_clock::time_point start_time = std::chrono::steady_clock::now();
-	//size_t const cores = std::thread::hardware_concurrency();
-	size_t const cores;
+	size_t const cores = std::thread::hardware_concurrency();
 	std::mutex console_mutex;
-	bool done;
+	std::atomic<bool> done{ false };
 	int task_counter;
 
+	void printInfo(const int& position, const size_t& range, const std::string& info) {
+		std::lock_guard<std::mutex> lock(console_mutex);
+		SetPosition(static_cast<int>(range), position);
+		std::cout << info;
+	};
+
 public:
-	ThreadPool(size_t _cores) : done(false), cores(_cores), task_counter(0){
-		for (size_t i = 0; i < cores; i++) {
-			threads.emplace_back(&ThreadPool::work, this);
-		}
-	};
+	ThreadPool();
 
-	~ThreadPool() {
-		done = true;
-		for (auto& thread : threads) {
-			thread.join();
-		}
-		SetPosition(0, task_counter + 1);
-	};
+	~ThreadPool();
 
-	void work() {
-		while (!done || !safe_queue.empty()) {
-			std::function<void()> task;
-			if (!safe_queue.empty()) {
-				task = safe_queue.pop();
-				task();
-			}
-			else {
-				std::this_thread::yield();
-			}
-		}
-	};
+	void work();
 
-	void submit(int (*function)(int a, int b), int a, int b) {
-		safe_queue.push([function, a, b, this]() {
+	template<typename T>
+	void submit(T(*function)(T a, T b, std::string result), T a, T b, std::string result_name) {
+		safe_queue.push([function, a, b, result_name, this]() {
 			int task_id = ++task_counter;
 			std::string info;
 			std::ostringstream oss;
+			size_t length = 0;
 
 			auto real_start = std::chrono::steady_clock::now();
 			std::chrono::duration<double> real_function_duration = real_start - start_time;
@@ -74,43 +62,34 @@ public:
 				+ " started: "
 				+ oss.str()
 				+ "s"
-				+ "\t";
-			SetPosition(0, task_id);
-			std::cout << info;
-			int length = info.size();
+				+ "  ";
+			printInfo(task_id, length, info);
 
-			int result = (*function)(a, b);
+			length = info.size();
+			T result = (*function)(a, b, result_name);
 
 			oss.str("");
-			oss << " a = " << a << ", b = " << b << " Result = " << result << '\t';
+			oss << " a = " << a << ", b = " << b << "  " << result_name << " = " << result << '\t';
 			info = oss.str();
-			SetPosition(length, task_id);
-			std::cout << info;
+
+
+			printInfo(task_id, length, info);
+
 			length += info.size();
 
 			auto end_time = std::chrono::steady_clock::now();
-			std::chrono::duration<double> duration = end_time - start_time; 
+			std::chrono::duration<double> duration = end_time - start_time;
 
 			oss.str("");
 			oss << std::fixed << std::setprecision(3) << duration.count();
 			info =
-				"Task "
+				"  Task "
 				+ std::to_string(task_id)
 				+ " completed. Duration: "
 				+ oss.str()
-				+ "s"
-				+ ". Count of tasks: "
-				+ std::to_string(getSize());
-			SetPosition(length, task_id);
-			std::cout << info;
-			});
-	};
+				+ "s";
 
-	size_t getSize() const {
-		return safe_queue.size();
+			printInfo(task_id, length, info);
+		});
 	};
-
-	bool isEmpty() const {
-		return safe_queue.empty();
-	}
 };
