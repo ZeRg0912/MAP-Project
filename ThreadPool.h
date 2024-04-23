@@ -45,7 +45,7 @@ public:
 	void work();
 
 	template<typename T>
-	void submit(T(*function)(T a, T b, std::string result), T a, T b, std::string result_name) {
+	void submit(/*T(*function)(T a, T b, std::string result)*/ std::function<T(T, T, std::string)> function, T a, T b, std::string result_name) {
 		safe_queue.push([function, a, b, result_name, this]() {
 			int task_id = ++task_counter;
 			std::string info;
@@ -62,11 +62,12 @@ public:
 				+ " started: "
 				+ oss.str()
 				+ "s"
-				+ "  ";
+				+ "\t";
 			printInfo(task_id, length, info);
 
 			length = info.size();
-			T result = (*function)(a, b, result_name);
+			//T result = (*function)(a, b, result_name);
+			auto result = function(a, b, result_name);
 
 			oss.str("");
 			oss << " a = " << a << ", b = " << b << "  " << result_name << " = " << result << '\t';
@@ -83,7 +84,7 @@ public:
 			oss.str("");
 			oss << std::fixed << std::setprecision(3) << duration.count();
 			info =
-				"  Task "
+				"    Task "
 				+ std::to_string(task_id)
 				+ " completed. Duration: "
 				+ oss.str()
