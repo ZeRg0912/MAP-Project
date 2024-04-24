@@ -43,7 +43,7 @@ int main() {
 
 	ThreadPool tp;
 	std::cout << "Safe queue thread pool:\n";
-	for (size_t i = 0; i < 20; i++) {
+	for (size_t i = 0; i < 10; i++) {
 		//tp.submit(sumFunc, Random(min, max), Random(min, max), "sum");
 		//tp.submit(subFunc, Random(min, max), Random(min, max), "sub");
 		tp.submit(sum2, Random(min, max), Random(min, max), "sum2");
